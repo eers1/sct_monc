@@ -14,12 +14,18 @@ font = {'family':'sans-serif', 'size'   : 18}
 rc('font', **font)
 
 def ds_fix_dims(ds):
-    ds = ds.rename({ds[ds.w.dims[0]].name:'time_coarse', ds[ds.w_max.dims[0]].name:'time_fine', ds[ds.rho.dims[0]].name: 'time_mid'})
+    '''
+    Renames time dimensions to fine, mid and coarse and converts times to hours. 
+    Converts x and y from number of grid boxes to km. 
+    '''
+    time_dims = [element for element in list(ds.dims.keys()) if "time" in element]
+    time_dims.sort(key=lambda s: len(ds[s]))
+    ds = ds.rename({ds[time_dims[0]].name:'time_coarse', ds[time_dims[1]].name:'time_mid', ds[time_dims[2]].name: 'time_fine'})
     ds['time_coarse']=(ds.time_coarse/3600)
     ds['time_mid']=(ds.time_mid/3600)
     ds['time_fine']=(ds.time_fine/3600)
-    ds['x'] = ds.x.astype(float)*50*1e-3  ### horizontal resolution
-    ds['y'] = ds.y.astype(float)*50*1e-3
+    ds['x'] = ds.x.astype(float)*float(ds.x[1]-ds.x[0])  ### horizontal resolution
+    ds['y'] = ds.y.astype(float)*float(ds.y[1]-ds.y[0])
     return ds
 
 def smooth_lwp(da, period):
