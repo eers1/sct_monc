@@ -18,14 +18,24 @@ def ds_fix_dims(ds):
     Renames time dimensions to fine, mid and coarse and converts times to hours. 
     Converts x and y from number of grid boxes to km. 
     '''
+    ### Rename times
     time_dims = [element for element in list(ds.dims.keys()) if "time" in element]
     time_dims.sort(key=lambda s: len(ds[s]))
     ds = ds.rename({ds[time_dims[0]].name:'time_coarse', ds[time_dims[1]].name:'time_mid', ds[time_dims[2]].name: 'time_fine'})
+    
+    ### Convert to hours
     ds['time_coarse']=(ds.time_coarse/3600)
     ds['time_mid']=(ds.time_mid/3600)
     ds['time_fine']=(ds.time_fine/3600)
-    ds['x'] = ds.x.astype(float)*float(ds.x[1]-ds.x[0])  ### horizontal resolution
-    ds['y'] = ds.y.astype(float)*float(ds.y[1]-ds.y[0])
+    
+    ### Convert x and y to km
+    dxx_ind = find_options(ds, b'dxx')
+    dxx = float(ds.options_database[dxx_ind[0]].values[1])
+    ds['x'] = ds.x.astype(float)*dxx*1e-3
+    
+    dyy_ind = find_options(ds, b'dyy')
+    dyy = float(ds.options_database[dyy_ind[0]].values[1])
+    ds['y'] = ds.y.astype(float)*dyy*1e-3
     return ds
 
 def smooth_lwp(da, period):
@@ -237,3 +247,13 @@ def load_lwp_cmap():
     cmap.set_bad(color=[0/255, 68/255, 94/255])
     
     return cmap, norm
+
+def find_options(ds, b_string):
+    '''
+    Finds the value of a setting in the options_database. String must be given as bytes type, e.g. b'dxx'
+    '''
+    results = []
+    for i,n in enumerate(ds.options_database.values):
+        if b_string in n[0]:
+            results.append(i)
+    return results
