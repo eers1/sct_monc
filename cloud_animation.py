@@ -10,6 +10,7 @@ import matplotlib.patches as patches
 import matplotlib.colors as colors
 from copy import copy
 import os
+import datetime
 
 sys.path.insert(0, "/home/users/eers/sct")
 import cloud_func_lib as cfl
@@ -72,7 +73,7 @@ def make_frame(ds, da, frame, i, transect, lwp_mask, cmap, norm, ticks, tick_pos
     
     cloud_mmr=frame[xsection,:,:]*1000
     c_obj1=cloud_mmr.plot(x='y',y='z',vmin=np.min(da.values)*1000, vmax=np.max(da.values)*1000,ax=ax_cloud_mmr)
-    #c_obj1=cl_mmr.mean(axis=0).plot(y='z',vmin=cl_min*1000, vmax=cl_max*1000,ax=a)
+    #c_obj1=cloud_mmr.mean(axis=0).plot(y='z',vmin=0, vmax=1,ax=ax_cloud_mmr)
     c_obj1.colorbar.set_label('mmr ($g~kg^{-1}$)') #,fontsize=font)
     ax_cloud_mmr.set(xlabel='y (km)', ylabel='Height (m)', title='Cloud liquid cross section')
     #rwp = ds.rwp*1000
@@ -115,11 +116,11 @@ def make_frame(ds, da, frame, i, transect, lwp_mask, cmap, norm, ticks, tick_pos
     x_lims=(0,da.time_coarse.max())
     lwp_mean=ds.LWP_mean*1000
     rwp_mean=ds.RWP_mean*1000
-    lwp_mean.plot(ax=ax_mean_lwp, label='lwp')
-    rwp_mean.plot(ax=ax_mean_lwp, label='rwp')
+    lwp_mean.plot(ax=ax_mean_lwp, label='LWP')
+    rwp_mean.plot(ax=ax_mean_lwp, label='RWP')
     c_y_lims=(-1,lwp_mean.max()+10)
     ax_mean_lwp.plot((ds.time_coarse[i],ds.time_coarse[i]),c_y_lims,c='black')
-    ax_mean_lwp.set(xlim=x_lims,ylim=c_y_lims, ylabel='LWP mean ($g~m^{-2}$)')
+    ax_mean_lwp.set(xlim=x_lims,ylim=c_y_lims, ylabel='Mean ($g~m^{-2}$)')
     #ax_mean_lwp.set_xlim(0,72) 
     #ax_mean_lwp.set_ylim(0,200) 
     ax_mean_lwp.xaxis.set_visible(False)
@@ -139,10 +140,14 @@ def make_frame(ds, da, frame, i, transect, lwp_mask, cmap, norm, ticks, tick_pos
     return fig
 
 # Load ds and csvs
+print(f'Start time: {datetime.datetime.now()}')
 path_to_merged_file = sys.argv[1]
 ds, project, design, key, run_name = load_ds(path_to_merged_file)
 lwp_mask, height, cloud_frac, times, cdnc_mean = load_csvs(run_name)
 da=ds.q_cloud_liquid_mass
+
+print(f"Project: {project}")
+print(f"Simulation: {key}")
 
 # Create a Rectangle patch
 xsection=128
@@ -155,6 +160,7 @@ tick_pos=[i*256/da.x.max().values for i in ticks]
 # Load LWP cmap 
 cmap, norm = cfl.load_lwp_cmap()
 
+# Create frames
 figname='animations/{}/{}_lwp_frame_{}.jpg'
 print('Starting animation frames')
 for i, frame in enumerate(da): 
@@ -165,4 +171,7 @@ for i, frame in enumerate(da):
     plt.close()
     
 # Animate frames
-os.system(f'find /home/users/eers/sct/animations/{run_name} -name "{run_name}_lwp_frame_*.jpg" | sort -V | xargs cat | ffmpeg -f image2pipe -r 1 -vcodec mjpeg -i - -vcodec libx264 /home/users/eers/sct/animations/{run_name}/{run_name}_lwp.mp4')
+print("Animating")
+os.system(f'find /home/users/eers/sct/animations/{run_name} -name "{run_name}_lwp_frame_*.jpg" | sort -V | xargs cat | ffmpeg -f image2pipe -r 2 -vcodec mjpeg -i - -vcodec libx264 /home/users/eers/sct/animations/{run_name}/{run_name}_lwp.mp4')
+
+print(f'End time: {datetime.datetime.now()}')

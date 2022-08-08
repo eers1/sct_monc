@@ -9,9 +9,9 @@ import matplotlib.patches as patches
 from copy import copy
 from matplotlib.gridspec import GridSpec
 
-font = {'family':'sans-serif', 'size'   : 18}
+#font = {'family':'sans-serif', 'size'   : 18}
 
-rc('font', **font)
+#rc('font', **font)
 
 def ds_fix_dims(ds):
     '''
@@ -90,7 +90,6 @@ def layer_cloud_mask_array(dataarray, time, col_mask_array):
     col_mask = np.ma.masked_less(col_sum, len(col_mask_array[time,0,0,:]), copy=True)
     return col_mask
 
-
 def entrainment(ds):
     '''
     Mean entrainment velocity --- doesn't work
@@ -166,7 +165,77 @@ def cloud_bounds_heights(ds):
 #     #plt.show()
 #     return ax
 
-def add_diurnal(ds, ax, ylims):
+def get_shallow_grad(ds, tstep):
+    '''
+    This function works from the top down, hence why the return value is multiplied by minus 1.
+    '''
+    da=ds.theta_mean[tstep, 5:]
+    
+    grads = []
+    for j in range(1,len(ds.zn[5:])):
+        g = (ds.zn.values[-1] - ds.zn.values[-1-j])/(da.values[-1] - da.values[-1-j])
+        grads.append(np.abs(g))
+
+    return -1*np.argmin(grads)   
+
+def get_deltheta_thresh(ds, tstep):
+    '''
+    Finds the top of the subcloud layer using a threshold: 
+    For each layer it calculates the diff between the pot temp and the mean of the layers below, if it's over 0.15K then it stops. Defined by Anna Lea Albright's paper.
+    Finds shallowest gradient and then adds 20 layers to clear the transition to FT. 
+    Takes the difference
+    '''
+    da=ds.theta_mean[tstep, 5:]
+    
+    subcloud_top_ind=5
+    while np.abs(da[subcloud_top_ind] - np.mean(da[:subcloud_top_ind])) < 0.15 and subcloud_top_ind < len(ds.zn[5:-1]):
+        subcloud_top_ind+=1
+    
+    inv_ind = get_shallow_grad(ds, tstep) 
+    diff = ds.theta_mean[tstep, inv_ind+20] - ds.theta_mean[tstep, :subcloud_top_ind].mean()
+    return subcloud_top_ind, inv_ind, diff.values
+
+def deltheta_thresh_timeseries(ds):
+    '''
+    Uses the delta threshold to create a timeseries for the inversion height.
+    '''
+    height_timeseries = []
+    for tstep in range(len(ds.theta_mean)):
+        subcloud_top_ind, inv_ind, diff = get_deltheta_thresh(ds, tstep)
+        height_timeseries.append(ds.zn[inv_ind])
+    return height_timeseries
+
+def subcloud_thresh_timeseries(ds):
+    '''
+    Uses the delta threshold to create a timeseries for the subcloud top/cloud base
+    '''
+    height_timeseries = []
+    for tstep in range(len(ds.theta_mean)):
+        subcloud_top_ind, inv_ind, diff = get_deltheta_thresh(ds, tstep)
+        height_timeseries.append(ds.zn[subcloud_top_ind])
+    return height_timeseries
+        
+def get_delqv_thresh(ds, tstep):
+    da=ds.vapour_mmr_mean[tstep, 5:]
+    
+    subcloud_top_ind=5
+    while np.abs(da[subcloud_top_ind] - np.mean(da[:subcloud_top_ind])) < 0.35e-3 and subcloud_top_ind < len(ds.zn[5:-1]):
+        subcloud_top_ind+=1
+        
+    min_grad = np.argmin(np.gradient(da.values))
+
+    if min_grad < 240:
+        inv_ind = min_grad+20
+    else:
+        inv_ind = min_grad
+    
+    diff = (da[inv_ind] - da[:subcloud_top_ind].mean())*1e3
+    return subcloud_top_ind, min_grad, diff.values
+
+def add_diurnal(ds, ax, ylims, alpha=None):
+    if alpha==None:
+        alpha=0.2
+    
     night_mask = ds.time_coarse.where(ds.toa_down_SW_mean==0.0, drop=True).values
     inds = []
     for n in range(len(night_mask)-1):
@@ -175,7 +244,7 @@ def add_diurnal(ds, ax, ylims):
             inds.append(n+1)
     splits=np.split(night_mask, inds)
     for s in splits:
-        plot_obj = ax.fill_between(s, ylims[0], ylims[1],color='grey', alpha=0.2)
+        plot_obj = ax.fill_between(s, ylims[0], ylims[1],color='grey', alpha=alpha)
     return plot_obj
 
 def sw_rad(ax, ds, save, xlabel=None, location=None):
