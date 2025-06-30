@@ -85,7 +85,7 @@ class Member:
         self.index = index
         self.id = f"{key}{index}"
         self.inputs = inputs
-        self.ds = xr.open_dataset(f"/gws/nopw/j04/carisma/eers/sct/processed/sct_{key}{index}_pp.nc")
+        self.ds = xr.open_dataset(f"/gws/nopw/j04/carisma/eers/sct/processed/main_ensemble/sct_{key}{index}_pp.nc")
 
 
 class ICE_Member:
@@ -94,7 +94,7 @@ class ICE_Member:
         self.var_num = var_num
         self.id = f"{root_key}_{var_num}"
         self.inputs = inputs
-        self.ds = xr.open_dataset(f"/gws/nopw/j04/carisma/eers/sct/ice/{root_key}/{root_key}_{var_num}/sct_{root_key}_{var_num}_pp.nc")
+        self.ds = xr.open_dataset(f"/gws/nopw/j04/carisma/eers/sct/processed/initial_condition_ensembles/{root_key}_{var_num}/sct_{root_key}_{var_num}_pp.nc")
 
 
 class Ensemble:
@@ -156,22 +156,22 @@ class Ensemble:
         print("Ensemble initialised.")
 
 
-    def load_variable_from_merged_nc(self, member, variable_strings):
-        if member.index < 61:
-            key = "em"
-            index = member.index
-        elif member.index > 60 and member.index < 85:
-            key = "val"
-            index = member.index - 61
-        elif member.index > 84:
-            key = "xtra"
-            index = member.index - 85
+    # def load_variable_from_merged_nc(self, member, variable_strings):
+    #     if member.index < 61:
+    #         key = "em"
+    #         index = member.index
+    #     elif member.index > 60 and member.index < 85:
+    #         key = "val"
+    #         index = member.index - 61
+    #     elif member.index > 84:
+    #         key = "xtra"
+    #         index = member.index - 85
 
-        ds = xr.open_dataset(f"/gws/nopw/j04/carisma/eers/sct/{key}/{key}{index}/sct_{key}{index}_merged.nc")
-        ds = cl.ds_fix_dims(ds)
-        list_of_variables = [ds[variable] for variable in variable_strings]
-        list_of_variables.insert(0, vars(self)[member.id].ds)
-        vars(self)[member.id].ds = xr.merge(list_of_variables)
+    #     ds = xr.open_dataset(f"/gws/nopw/j04/carisma/eers/sct/{key}/{key}{index}/sct_{key}{index}_merged.nc")
+    #     ds = cl.ds_fix_dims(ds)
+    #     list_of_variables = [ds[variable] for variable in variable_strings]
+    #     list_of_variables.insert(0, vars(self)[member.id].ds)
+    #     vars(self)[member.id].ds = xr.merge(list_of_variables)
 
     def create_training_set(self, output_string):
         column_names = self.parameter_names + [output_string]
