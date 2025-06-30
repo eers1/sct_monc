@@ -99,6 +99,7 @@ class ICE_Member:
 
 class Ensemble:
     def __init__(self, include_spinup=False, delete_bad=True):
+        print("Initiating ensemble...")
         # Assign names and labels
         self.parameter_names = ['qv_bl','inv','delt','delq','na','baut']
         self.parameter_labels = ['$BL~q_{v}$', '$BL~z$', r'$\Delta~\theta$', '$\Delta~q_{v}$', '$BL~N_{a}$', '10^{$b_{aut}$}']
@@ -123,6 +124,7 @@ class Ensemble:
         self.member_sc_no_cu_keys = []
         self.member_bad_keys = ["em6", "em86", "em93"]
         key = "em"
+        print("Loading members")
         for i, member_inputs in enumerate(self.design):
             setattr(self, f"{key}{i}", Member(key,i,member_inputs))
             member = vars(self)[f"{key}{i}"]
@@ -151,6 +153,7 @@ class Ensemble:
 
         if delete_bad:
             self.design = np.delete(self.design, (6,86,93), axis=0)
+        print("Ensemble initialised.")
 
 
     def load_variable_from_merged_nc(self, member, variable_strings):
