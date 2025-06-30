@@ -85,7 +85,7 @@ class Member:
         self.index = index
         self.id = f"{key}{index}"
         self.inputs = inputs
-        self.ds = xr.open_dataset(f"/gws/nopw/j04/carisma/eers/sct/processed/sct_{key}{index}_pp.nc")
+        self.ds = xr.open_dataset(f"/gws/nopw/j04/carisma/eers/sct/processed/main_ensemble/sct_{key}{index}_pp.nc")
 
 
 class ICE_Member:
@@ -94,11 +94,12 @@ class ICE_Member:
         self.var_num = var_num
         self.id = f"{root_key}_{var_num}"
         self.inputs = inputs
-        self.ds = xr.open_dataset(f"/gws/nopw/j04/carisma/eers/sct/ice/{root_key}/{root_key}_{var_num}/sct_{root_key}_{var_num}_pp.nc")
+        self.ds = xr.open_dataset(f"/gws/nopw/j04/carisma/eers/sct/processed/initial_condition_ensembles/{root_key}_{var_num}/sct_{root_key}_{var_num}_pp.nc")
 
 
 class Ensemble:
     def __init__(self, include_spinup=False, delete_bad=True):
+        print("Initiating ensemble...")
         # Assign names and labels
         self.parameter_names = ['qv_bl','inv','delt','delq','na','baut']
         self.parameter_labels = ['$BL~q_{v}$', '$BL~z$', r'$\Delta~\theta$', '$\Delta~q_{v}$', '$BL~N_{a}$', '10^{$b_{aut}$}']
@@ -123,6 +124,7 @@ class Ensemble:
         self.member_sc_no_cu_keys = []
         self.member_bad_keys = ["em6", "em86", "em93"]
         key = "em"
+        print("Loading members")
         for i, member_inputs in enumerate(self.design):
             setattr(self, f"{key}{i}", Member(key,i,member_inputs))
             member = vars(self)[f"{key}{i}"]
@@ -151,24 +153,25 @@ class Ensemble:
 
         if delete_bad:
             self.design = np.delete(self.design, (6,86,93), axis=0)
+        print("Ensemble initialised.")
 
 
-    def load_variable_from_merged_nc(self, member, variable_strings):
-        if member.index < 61:
-            key = "em"
-            index = member.index
-        elif member.index > 60 and member.index < 85:
-            key = "val"
-            index = member.index - 61
-        elif member.index > 84:
-            key = "xtra"
-            index = member.index - 85
+    # def load_variable_from_merged_nc(self, member, variable_strings):
+    #     if member.index < 61:
+    #         key = "em"
+    #         index = member.index
+    #     elif member.index > 60 and member.index < 85:
+    #         key = "val"
+    #         index = member.index - 61
+    #     elif member.index > 84:
+    #         key = "xtra"
+    #         index = member.index - 85
 
-        ds = xr.open_dataset(f"/gws/nopw/j04/carisma/eers/sct/{key}/{key}{index}/sct_{key}{index}_merged.nc")
-        ds = cl.ds_fix_dims(ds)
-        list_of_variables = [ds[variable] for variable in variable_strings]
-        list_of_variables.insert(0, vars(self)[member.id].ds)
-        vars(self)[member.id].ds = xr.merge(list_of_variables)
+    #     ds = xr.open_dataset(f"/gws/nopw/j04/carisma/eers/sct/{key}/{key}{index}/sct_{key}{index}_merged.nc")
+    #     ds = cl.ds_fix_dims(ds)
+    #     list_of_variables = [ds[variable] for variable in variable_strings]
+    #     list_of_variables.insert(0, vars(self)[member.id].ds)
+    #     vars(self)[member.id].ds = xr.merge(list_of_variables)
 
     def create_training_set(self, output_string):
         column_names = self.parameter_names + [output_string]

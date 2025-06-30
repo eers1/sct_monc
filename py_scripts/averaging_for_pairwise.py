@@ -43,7 +43,7 @@ def slice_through_and_average(colour, index_1, index_2, index_3, data_type):
 
     mean_3d = reshaped_array.mean(axis=tuple(listed))
     for i in range(len(mean_3d)):
-        slice_i = mean_3d[:,:,i]
+        slice_i = mean_3d[:,i,:]
         np.savetxt(f"../predictions/mean_slices/mean_slice_{data_type}_{index_1}{index_2}{index_3}_slice{i}_nv.csv", slice_i, delimiter=',')
 
 data_type = "transition_time"   # transition_time or rwp_mean
@@ -52,5 +52,5 @@ noise = ""
 design = np.loadtxt("../predictions/grid10_design.csv", delimiter=',', skiprows=1)
 pred = np.loadtxt(f"../predictions/grid10_{data_type}_nv.csv", delimiter=',', skiprows=1)
 
-average_through_dimensions(pred[:,1], data_type)
-slice_through_and_average(pred[:,1], 2, 4, 5, data_type)
+# average_through_dimensions(pred[:,1], data_type)
+slice_through_and_average(pred[:,1], 2, 5, 4, data_type)
